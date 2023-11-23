@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@chakra-ui/react": "^2.4.6",
+    "@web3modal/ethers5": "^3.3.2",
     "alchemy-sdk": "^2.2.5",
     "ethers": "^5.7.2",
     "react": "^18.2.0",
