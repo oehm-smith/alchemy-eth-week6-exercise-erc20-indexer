@@ -74,6 +74,11 @@ function App() {
         }
     }, [address]);
 
+    useEffect(() => {
+        console.log(`results:`)
+        console.log(`${JSON.stringify(results, null, 2)}`)
+    }, [results])
+
     async function getTokenBalance(passedAddress) {
         const config = {
             apiKey: '8W7zKgmn4QUHaEdD_leww7KUQOpYphSd',
@@ -149,19 +154,19 @@ function App() {
                                     color="white"
                                     bg="blue"
                                     w={'20vw'}
-                                    key={e.id}
+                                    key={e.contractAddress}
                                 >
                                     <Box>
-                                        <b>Symbol:</b> ${tokenDataObjects[i].symbol}&nbsp;
+                                        <b>Symbol:</b> ${tokenDataObjects[i]?.symbol}&nbsp;
                                     </Box>
                                     <Box>
                                         <b>Balance:</b>&nbsp;
                                         {Utils.formatUnits(
                                             e.tokenBalance,
-                                            tokenDataObjects[i].decimals
+                                            tokenDataObjects[i]?.decimals
                                         )}
                                     </Box>
-                                    <Image src={tokenDataObjects[i].logo}/>
+                                    <Image src={tokenDataObjects[i]?.logo}/>
                                 </Flex>
                             );
                         })}
