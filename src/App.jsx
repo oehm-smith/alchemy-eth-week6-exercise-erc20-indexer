@@ -8,6 +8,7 @@ import { ConnectButton } from "./ConnectButton.jsx"
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
+// Ideally we'd use some more secure ways of obtaining these values
 const GOERLI_API_KEY = "8W7zKgmn4QUHaEdD_leww7KUQOpYphSd"
 const GOERLI_RPC_URL = "https://eth-goerli.g.alchemy.com/v2/8W7zKgmn4QUHaEdD_leww7KUQOpYphSd"
 
@@ -45,7 +46,7 @@ function App() {
     const [hasQueried, setHasQueried] = useState(false);
     const [tokenDataObjects, setTokenDataObjects] = useState([]);
     const { address, chainId, isConnected } = useWeb3ModalAccount();
-    const [lastAddress, setLastAddress] = useState();   // prevent it keeping on performing lookup
+    // const [lastAddress, setLastAddress] = useState();   // prevent it keeping on performing lookup
 
     useEffect(() => {
         console.log(`Address changed: ${address}`);
@@ -83,8 +84,9 @@ function App() {
             }
             console.log(`lookup for ${origAddr} - ${address}`);
         }
-        if (address != lastAddress) {
-            setLastAddress(address);
+        if (address != userAddress) {
+            setUserAddress(address);
+            // setLastAddress(address);
             const data = await alchemy.core.getTokenBalances(address);    //userAddress);
 
             setResults(data);
@@ -103,86 +105,69 @@ function App() {
 
     return (<div>
         <ToastContainer/>
-        {/*<Box w="100vw">*/}
-        {/*<Flex*/}
-        {/*    alignItems={'center'}*/}
-        {/*    justifyContent="center"*/}
-        {/*    flexDirection={'column'}*/}
-        {/*>*/}
-        <Flex color="white" flexDirection="column"  borderWidth="1px">
-            {/*<Box borderWidth="1px">*/}
-                <Flex flexDirection="row">
-                        <Heading mb={20} fontSize={36}>
-                            ERC-20 Token Indexer
-                        </Heading>
-                    <Box alignSelf='right'>
-                        <ConnectButton/>
-                    </Box>
-                </Flex>
-            {/*</Box>*/}
+        <Flex color="white" flexDirection="column" borderWidth="1px">
+            <Flex flexDirection="row">
+                <Heading mb={20} fontSize={36}>
+                    ERC-20 Token Indexer
+                </Heading>
+                <Box alignSelf='right' padding='10px'>
+                    <ConnectButton/>
+                </Box>
+            </Flex>
             <Box>
                 <Text>
-                    Connect a wallet.  Or enter an address and this website will return all of its ERC-20
+                    Connect a wallet. Or enter an address and this website will return all of its ERC-20
                     token balances!
                 </Text>
             </Box>
         </Flex>
-        {/*</Box>*/}
-        {/*<Box w="100vw">*/}
-        {/*<Flex*/}
-        {/*    w="100%"*/}
-        {/*    flexDirection="column"*/}
-        {/*    alignItems="center"*/}
-        {/*    justifyContent={'center'}*/}
-        {/*>*/}
         <Flex flexDirection="column">
-                <Heading mt={42}>
-                    Get all the ERC-20 token balances of this address:
-                </Heading>
-                <Input
-                    onChange={(e) => {
-                        console.log(`changed addr: ${e.target.value}`)
-                        setUserAddress(e.target.value)
-                    }}
-                    color="black"
-                    w="600px"
-                    textAlign="left"
-                    p={4}
-                    bgColor="white"
-                    fontSize={24}
-                    value='booger'
-                    margin='20px'
-                />
+            <Heading mt={42}>
+                Get all the ERC-20 token balances of this address:
+            </Heading>
+            <Input
+                onChange={(e) => {
+                    console.log(`changed addr: ${e.target.value}`)
+                    setUserAddress(e.target.value)
+                }}
+                color="black"
+                w="600px"
+                textAlign="left"
+                p={4}
+                bgColor="white"
+                fontSize={24}
+                value={userAddress}
+                margin='20px'
+            />
             <Box maxW="md">
                 <Button fontSize={20} onClick={() => getTokenBalance(0)} mt={36} bgColor="blue">
                     Check ERC-20 Token Balances
                 </Button>
             </Box>
 
-                <Heading my={36}>ERC-20 token balances:</Heading>
+            <Heading my={36}>ERC-20 token balances:</Heading>
 
-                {hasQueried ? (<SimpleGrid w={'90vw'} columns={4} spacing={24}>
-                    {results.tokenBalances.map((e, i) => {
-                        return (<Flex
-                            flexDir={'column'}
-                            color="black"
-                            bg="lightyellow"
-                            w={'20vw'}
-                            key={e.contractAddress}
-                        >
-                            <Box>
-                                <b>Symbol:</b> ${tokenDataObjects[i]?.symbol}&nbsp;
-                            </Box>
-                            <Box>
-                                <b>Balance:</b>&nbsp;
-                                {Utils.formatUnits(e.tokenBalance, tokenDataObjects[i]?.decimals)}
-                            </Box>
-                            <Image src={tokenDataObjects[i]?.logo}/>
-                        </Flex>);
-                    })}
-                </SimpleGrid>) : ('Please make a query! This may take a few seconds...')}
+            {hasQueried ? (<SimpleGrid w={'90vw'} columns={4} spacing={24}>
+                {results.tokenBalances.map((e, i) => {
+                    return (<Flex
+                        flexDir={'column'}
+                        color="black"
+                        bg="lightyellow"
+                        w={'20vw'}
+                        key={e.contractAddress}
+                    >
+                        <Box>
+                            <b>Symbol:</b> ${tokenDataObjects[i]?.symbol}&nbsp;
+                        </Box>
+                        <Box>
+                            <b>Balance:</b>&nbsp;
+                            {Utils.formatUnits(e.tokenBalance, tokenDataObjects[i]?.decimals)}
+                        </Box>
+                        <Image src={tokenDataObjects[i]?.logo}/>
+                    </Flex>);
+                })}
+            </SimpleGrid>) : ('Please make a query! This may take a few seconds...')}
         </Flex>
-        {/*// </Box>*/}
     </div>);
 }
 
