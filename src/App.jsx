@@ -44,6 +44,8 @@ createWeb3Modal({
     ethersConfig: defaultConfig({ metadata }), chains: [goerli], projectId
 })
 
+const addressMap = new Map();
+
 // const web3Modal = new Web3Modal()
 // const connection = await web3Modal.connect()
 // const provider = new ethers.providers.Web3Provider(connection)
@@ -51,7 +53,7 @@ function usePrevious(value) {
     const ref = useRef();
     useEffect(() => {
         ref.current = value; //assign the value of ref to the argument
-    },[value]); //this code will run when the value of 'value' changes
+    }, [value]); //this code will run when the value of 'value' changes
     return ref.current; //in the end, return the current ref value.
 }
 
@@ -59,13 +61,14 @@ function App() {
     const [userAddress, setUserAddress] = useState('');
     // const [lastUserAddress, setLastUserAddress] = useState('');
     const lastUserAddress = usePrevious(userAddress);
-    const [results, setResults] = useState({tokenBalances: []});
+    const [results, setResults] = useState({ tokenBalances: [] });
     // const [hasQueried, setHasQueried] = useState(false);
     // const [tokenDataObjects, setTokenDataObjects] = useState([]);
     const { address: walletConnectAddress, chainId, isConnected } = useWeb3ModalAccount();
-    const [ showIsAddrError, setShowIsAddrError ]= useState(false);
+    const [showIsAddrError, setShowIsAddrError] = useState(false);
 
     const resetResults = () => setResults({ tokenBalances: [] });
+    const getResetResults = () => ({ tokenBalances: [] });
 
     useEffect(() => {
         console.log(`walletConnectAddress changed: ${walletConnectAddress}`);
@@ -79,16 +82,28 @@ function App() {
     }, [walletConnectAddress]);
 
     useEffect(() => {
-        console.log(`results:`)
-        console.log(`${JSON.stringify(results, null, 2)}`)
+        // console.log(`results:`)
+        // console.log(`${JSON.stringify(results, null, 2)}`)
     }, [results])
 
-    useMemo(() => {
+    // const rP = useMemo(async () => {
+    //     setShowIsAddrError(false);
+    //     console.log(`address changed: ${userAddress}`);
+    //     return await getTokenBalance();
+    // }, [userAddress]);
+    // rP.then(r => {
+    //     console.log(`got new R - length: ${r.tokenBalances.length}`)
+    //     setResults(r)
+    // }).catch(e => console.log(`getting results error`));
+
+    useEffect(() => {
         setShowIsAddrError(false);
-        console.log(`address changed: ${userAddress}`);
         getTokenBalance();
     }, [userAddress])
-
+    /**
+     *
+     * @returns {Promise results data}
+     */
     async function getTokenBalance() {
         const haveString = (str) => str != null && str.length > 0;
         const isENS = (addr) => addr.search(/\.eth$/) > -1;
@@ -102,6 +117,7 @@ function App() {
         if (!haveString(userAddress) && !(isENS(userAddress) || isPublicKey(userAddress))) {
             resetResults();
             return;
+            // return getResetResults();
         }
         console.log(`address: ${userAddress}`)
         // setShowIsAddrError(false);
@@ -113,13 +129,24 @@ function App() {
                 toast.error(`lookup for ${origAddr} as ENS failed`);
                 resetResults();
                 return;
+                // return getResetResults();
             }
             console.log(`lookup for ${origAddr} - ${address}`);
             setUserAddress(address);
+            return;
         }
         if (userAddress != lastUserAddress && isPublicKey(userAddress)) {
+            // Cache tokens for address to avoid unnecessary network calls.  We need a way to know if userAddress has any
+            // new tokens, or we could just "expire" a cache and refresh every-now-and-then.
+            console.log(`addressMap size: ${addressMap.size}`)
+            console.log(`addressMap keys: ${[...addressMap.keys()]}`)
+            if (addressMap.has(userAddress)) {
+                setResults(addressMap.get(userAddress))
+                return;
+            }
             // setLastUserAddress(userAddress);
             const data = await alchemy.core.getTokenBalances(userAddress);    //userAddress);
+            console.log(`went to network and read: ${data.tokenBalances.length} tokens`)
             setResults(data);   // Setting this here will cause the UI to update with initial information.  Down below
                                 // call setResults again to update with more details
 
@@ -137,11 +164,23 @@ function App() {
             for (let i = 0; i < data.tokenBalances.length; i++) {
                 data.tokenBalances[i] = { ...data.tokenBalances[i], ...tokenData[i] }
             }
-            setResults(JSON.parse(JSON.stringify(data)));   // React sees this as fresh object so will rerender
+            const newData = JSON.parse(JSON.stringify(data));
+            // Because of the async nature we may hit this twice so guard for it
+            if (!addressMap.has(userAddress)) {
+                addressMap.set(userAddress, newData);
+            }
+            console.log(`after setting ... addressMap size: ${addressMap.size}`)
+            console.log(`after setting ... addressMap keys: ${[...addressMap.keys()]}`)
+
+            setResults(newData);   // React sees this as fresh object so will rerender
+            return;
+            // return JSON.parse(JSON.stringify(data));
         } else {
-            if (! isPublicKey(userAddress)) {
+            if (!isPublicKey(userAddress)) {
                 resetResults();
                 setShowIsAddrError(true);
+                // return getResetResults();
+                return;
             }
         }
     }
