@@ -121,16 +121,20 @@ function App() {
             // setLastUserAddress(userAddress);
             const data = await alchemy.core.getTokenBalances(userAddress);    //userAddress);
 
-            setResults(data);
-
             const tokenDataPromises = [];
 
             for (let i = 0; i < data.tokenBalances.length; i++) {
-                const tokenData = alchemy.core.getTokenMetadata(data.tokenBalances[i].contractAddress);
-                tokenDataPromises.push(tokenData);
+                try {
+                    const tokenData = await alchemy.core.getTokenMetadata(data.tokenBalances[i].contractAddress);
+                    // tokenDataPromises.push(tokenData);
+                    data.tokenBalances[i] = { ...data.tokenBalances[i], tokenData }
+                    console.log(`tokenData: ${tokenData}`)
+                } catch (e) {
+                    console.error(`error`)
+                }
             }
 
-            setTokenDataObjects(await Promise.all(tokenDataPromises));
+            setResults(data);
             setHasQueried(true);
         } else {
             if (! isPublicKey(userAddress)) {
@@ -196,13 +200,13 @@ function App() {
                         key={e.contractAddress}
                     >
                         <Box>
-                            <b>Symbol:</b> ${tokenDataObjects[i]?.symbol}&nbsp;
+                            <b>Symbol:</b> ${e.tokenData.symbol}&nbsp;
                         </Box>
                         <Box>
                             <b>Balance:</b>&nbsp;
-                            {Utils.formatUnits(e.tokenBalance, tokenDataObjects[i]?.decimals)}
+                            {Utils.formatUnits(e.tokenBalance, e.tokenData.decimals)}
                         </Box>
-                        <Image src={tokenDataObjects[i]?.logo}/>
+                        <Image src={e.logo}/>
                     </Flex>);
                 })}
             </SimpleGrid>) : ('Please make a query! This may take a few seconds...')}
