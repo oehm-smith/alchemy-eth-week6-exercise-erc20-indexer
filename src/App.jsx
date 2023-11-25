@@ -2,7 +2,7 @@ import {
     Box, Button, Center, Flex, Heading, Image, Input, SimpleGrid, Text,
 } from '@chakra-ui/react';
 import { Alchemy, Network, Utils } from 'alchemy-sdk';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 // import { createWeb3Modal, defaultConfig, useWeb3ModalAccount, Web3Modal, Web3Provider } from '@web3modal/ethers5/react'
 import { ConnectButton } from "./ConnectButton.jsx"
 import { ToastContainer, toast } from 'react-toastify';
@@ -59,13 +59,14 @@ function App() {
     const [userAddress, setUserAddress] = useState('');
     // const [lastUserAddress, setLastUserAddress] = useState('');
     const lastUserAddress = usePrevious(userAddress);
-    const [results, setResults] = useState([]);
+    const [results, setResults] = useState({tokenBalances: []});
     const [hasQueried, setHasQueried] = useState(false);
     const [tokenDataObjects, setTokenDataObjects] = useState([]);
     const { address: walletConnectAddress, chainId, isConnected } = useWeb3ModalAccount();
     const [ showIsAddrError, setShowIsAddrError ]= useState(false);
 
     const resetResults = () => setResults({ tokenBalances: [] });
+
     useEffect(() => {
         console.log(`walletConnectAddress changed: ${walletConnectAddress}`);
         setShowIsAddrError(false);
@@ -82,7 +83,7 @@ function App() {
         console.log(`${JSON.stringify(results, null, 2)}`)
     }, [results])
 
-    useEffect(() => {
+    useMemo(() => {
         setShowIsAddrError(false);
         console.log(`address changed: ${userAddress}`);
         getTokenBalance();
