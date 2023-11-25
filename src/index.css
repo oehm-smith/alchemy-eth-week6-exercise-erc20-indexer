@@ -73,3 +73,21 @@ button:focus-visible {
   color: orangered;
   font-size: 1.2em;
 }
+
+.container {
+  border: 1px;
+  background-color: black;
+  color: white;
+  border-color: greenyellow;
+}
+
+.tokenBox {
+  border: 10px;
+  border-color: red;
+  margin: 1px;
+  padding: 2px;
+  color: black;
+  background-color: greenyellow;
+  min-width: 18vw;
+
+}

@@ -186,10 +186,10 @@ function App() {
     }
 
     const errMessage = showIsAddrError ? <p className="Error">Unknown .eth or address</p> : <span></span>;
-    return (<div>
+    return (<div className="container">
         <ToastContainer/>
-        <Flex color="white" flexDirection="column" borderWidth="1px">
-            <Flex flexDirection="row">
+        <Flex color="white" flexDirection="column" borderWidth="1px" className="flexContainer">
+            <Flex flexDirection="row" flexGrow="grow">
                 <Heading mb={20} fontSize={36}>
                     ERC-20 Token Indexer
                 </Heading>
@@ -231,24 +231,23 @@ function App() {
 
             <Heading my={36}>ERC-20 token balances</Heading>
 
-            {results.tokenBalances.length > 0 ? (<SimpleGrid w={'90vw'} columns={4} spacing={24}>
+            {results.tokenBalances?.length > 0 ? (<SimpleGrid columns={4} spacing={24}>
                 {results.tokenBalances.map((e, i) => {
-                    return (<Flex
-                        flexDir={'column'}
-                        color="black"
-                        bg="lightyellow"
-                        w={'20vw'}
-                        key={e.contractAddress}
-                    >
-                        <Box>
-                            <b>Symbol:</b> ${e.symbol}&nbsp;
-                        </Box>
-                        <Box>
-                            <b>Balance:</b>&nbsp;
-                            {Utils.formatUnits(e.tokenBalance, e.decimals)}
-                        </Box>
-                        <Image src={e.logo}/>
-                    </Flex>);
+                    return (
+                        <Flex
+                            flexDir={'column'}
+                            key={e.contractAddress}
+                            className="tokenBox"
+                        >
+                            <Box>
+                                <b>Symbol:</b> ${e.symbol}&nbsp;
+                            </Box>
+                            <Box>
+                                <b>Balance:</b>&nbsp;
+                                {Utils.formatUnits(e.tokenBalance, e.decimals)}
+                            </Box>
+                            <Image src={e.logo}/>
+                        </Flex>);
                 })}
             </SimpleGrid>) : ('Please make a query! This may take a few seconds...')}
         </Flex>
