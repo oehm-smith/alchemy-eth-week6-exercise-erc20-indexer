@@ -2,11 +2,15 @@ import {
     Box, Button, Center, Flex, Heading, Image, Input, SimpleGrid, Text,
 } from '@chakra-ui/react';
 import { Alchemy, Network, Utils } from 'alchemy-sdk';
-import { useState, useEffect } from 'react';
-import { createWeb3Modal, defaultConfig, useWeb3ModalAccount } from '@web3modal/ethers5/react'
+import { useState, useEffect, useRef } from 'react';
+// import { createWeb3Modal, defaultConfig, useWeb3ModalAccount, Web3Modal, Web3Provider } from '@web3modal/ethers5/react'
 import { ConnectButton } from "./ConnectButton.jsx"
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { ethers } from "ethers"
+import { createWeb3Modal, defaultConfig } from "@web3modal/ethers5"
+import { useWeb3ModalAccount } from "@web3modal/ethers5/react"
+// import { Web3Modal } from "@web3modal/ethers5/dist/esm/src/client.js"
 
 // Ideally we'd use some more secure ways of obtaining these values
 const GOERLI_API_KEY = "8W7zKgmn4QUHaEdD_leww7KUQOpYphSd"
@@ -40,54 +44,78 @@ createWeb3Modal({
     ethersConfig: defaultConfig({ metadata }), chains: [goerli], projectId
 })
 
+// const web3Modal = new Web3Modal()
+// const connection = await web3Modal.connect()
+// const provider = new ethers.providers.Web3Provider(connection)
+function usePrevious(value) {
+    const ref = useRef();
+    useEffect(() => {
+        ref.current = value; //assign the value of ref to the argument
+    },[value]); //this code will run when the value of 'value' changes
+    return ref.current; //in the end, return the current ref value.
+}
+
 function App() {
     const [userAddress, setUserAddress] = useState('');
+    // const [lastUserAddress, setLastUserAddress] = useState('');
+    const lastUserAddress = usePrevious(userAddress);
     const [results, setResults] = useState([]);
     const [hasQueried, setHasQueried] = useState(false);
     const [tokenDataObjects, setTokenDataObjects] = useState([]);
-    const { address, chainId, isConnected } = useWeb3ModalAccount();
-    // const [lastAddress, setLastAddress] = useState();   // prevent it keeping on performing lookup
+    const { address: walletConnectAddress, chainId, isConnected } = useWeb3ModalAccount();
+    const [ showIsAddrError, setShowIsAddrError ]= useState(false);
 
     useEffect(() => {
-        console.log(`Address changed: ${address}`);
-        if (address != null) {
-            getTokenBalance(address);
+        console.log(`walletConnectAddress changed: ${walletConnectAddress}`);
+        setShowIsAddrError(false);
+        if (walletConnectAddress != null) {
+            setUserAddress(walletConnectAddress);
         } else {
             setResults({ tokenBalances: [] })
+            setUserAddress('')
         }
-    }, [address]);
+    }, [walletConnectAddress]);
 
     useEffect(() => {
         console.log(`results:`)
         console.log(`${JSON.stringify(results, null, 2)}`)
     }, [results])
 
-    async function getTokenBalance(passedAddress) {
+    useEffect(() => {
+        setShowIsAddrError(false);
+        console.log(`address changed: ${userAddress}`);
+        getTokenBalance();
+    }, [userAddress])
+
+    async function getTokenBalance() {
         const haveString = (str) => str != null && str.length > 0;
+        const isENS = (addr) => addr.search(/\.eth$/) > -1;
+        const isPublicKey = (addr) => ethers.utils.isAddress(addr);
+
         const config = {
             apiKey: '8W7zKgmn4QUHaEdD_leww7KUQOpYphSd', network: Network.ETH_GOERLI,
         };
         const alchemy = new Alchemy(config);
 
-        let address = passedAddress || userAddress;
-        if (!haveString(address)) {
+        if (!haveString(userAddress) && !(isENS(userAddress) || isPublicKey(userAddress))) {
             return;
         }
-        console.log(`address: ${address} or ${JSON.stringify(Object.keys(address))}`)
-        if (address.search(/^0x/) === -1) {
-            const origAddr = address;
-            address = await alchemy.core.resolveName(address);
+        console.log(`address: ${userAddress}`)
+        // setShowIsAddrError(false);
+        if (isENS(userAddress)) {
+            const origAddr = userAddress;
+            const address = await alchemy.core.resolveName(userAddress);
             if (!haveString(address)) {
                 console.log(`lookup for ${origAddr} failed`)
                 toast.error(`lookup for ${origAddr} as ENS failed`);
                 return;
             }
             console.log(`lookup for ${origAddr} - ${address}`);
-        }
-        if (address != userAddress) {
             setUserAddress(address);
-            // setLastAddress(address);
-            const data = await alchemy.core.getTokenBalances(address);    //userAddress);
+        }
+        if (userAddress != lastUserAddress && isPublicKey(userAddress)) {
+            // setLastUserAddress(userAddress);
+            const data = await alchemy.core.getTokenBalances(userAddress);    //userAddress);
 
             setResults(data);
 
@@ -100,9 +128,14 @@ function App() {
 
             setTokenDataObjects(await Promise.all(tokenDataPromises));
             setHasQueried(true);
+        } else {
+            if (! isPublicKey(userAddress)) {
+                setShowIsAddrError(true);
+            }
         }
     }
 
+    const errMessage = showIsAddrError ? <p className="Error">Unknown .eth or address</p> : <span></span>;
     return (<div>
         <ToastContainer/>
         <Flex color="white" flexDirection="column" borderWidth="1px">
@@ -139,6 +172,7 @@ function App() {
                 value={userAddress}
                 margin='20px'
             />
+            {errMessage}
             <Box maxW="md">
                 <Button fontSize={20} onClick={() => getTokenBalance(0)} mt={36} bgColor="blue">
                     Check ERC-20 Token Balances
