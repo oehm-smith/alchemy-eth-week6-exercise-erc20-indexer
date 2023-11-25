@@ -60,8 +60,8 @@ function App() {
     // const [lastUserAddress, setLastUserAddress] = useState('');
     const lastUserAddress = usePrevious(userAddress);
     const [results, setResults] = useState({tokenBalances: []});
-    const [hasQueried, setHasQueried] = useState(false);
-    const [tokenDataObjects, setTokenDataObjects] = useState([]);
+    // const [hasQueried, setHasQueried] = useState(false);
+    // const [tokenDataObjects, setTokenDataObjects] = useState([]);
     const { address: walletConnectAddress, chainId, isConnected } = useWeb3ModalAccount();
     const [ showIsAddrError, setShowIsAddrError ]= useState(false);
 
@@ -120,22 +120,24 @@ function App() {
         if (userAddress != lastUserAddress && isPublicKey(userAddress)) {
             // setLastUserAddress(userAddress);
             const data = await alchemy.core.getTokenBalances(userAddress);    //userAddress);
+            setResults(data);   // Setting this here will cause the UI to update with initial information.  Down below
+                                // call setResults again to update with more details
 
             const tokenDataPromises = [];
 
             for (let i = 0; i < data.tokenBalances.length; i++) {
                 try {
-                    const tokenData = await alchemy.core.getTokenMetadata(data.tokenBalances[i].contractAddress);
-                    // tokenDataPromises.push(tokenData);
-                    data.tokenBalances[i] = { ...data.tokenBalances[i], tokenData }
-                    console.log(`tokenData: ${tokenData}`)
+                    const tokenData = alchemy.core.getTokenMetadata(data.tokenBalances[i].contractAddress);
+                    tokenDataPromises.push(tokenData);
                 } catch (e) {
                     console.error(`error`)
                 }
             }
-
-            setResults(data);
-            setHasQueried(true);
+            const tokenData = await Promise.all(tokenDataPromises);
+            for (let i = 0; i < data.tokenBalances.length; i++) {
+                data.tokenBalances[i] = { ...data.tokenBalances[i], ...tokenData[i] }
+            }
+            setResults(JSON.parse(JSON.stringify(data)));   // React sees this as fresh object so will rerender
         } else {
             if (! isPublicKey(userAddress)) {
                 resetResults();
@@ -200,11 +202,11 @@ function App() {
                         key={e.contractAddress}
                     >
                         <Box>
-                            <b>Symbol:</b> ${e.tokenData.symbol}&nbsp;
+                            <b>Symbol:</b> ${e.symbol}&nbsp;
                         </Box>
                         <Box>
                             <b>Balance:</b>&nbsp;
-                            {Utils.formatUnits(e.tokenBalance, e.tokenData.decimals)}
+                            {Utils.formatUnits(e.tokenBalance, e.decimals)}
                         </Box>
                         <Image src={e.logo}/>
                     </Flex>);
