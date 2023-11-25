@@ -65,13 +65,14 @@ function App() {
     const { address: walletConnectAddress, chainId, isConnected } = useWeb3ModalAccount();
     const [ showIsAddrError, setShowIsAddrError ]= useState(false);
 
+    const resetResults = () => setResults({ tokenBalances: [] });
     useEffect(() => {
         console.log(`walletConnectAddress changed: ${walletConnectAddress}`);
         setShowIsAddrError(false);
         if (walletConnectAddress != null) {
             setUserAddress(walletConnectAddress);
         } else {
-            setResults({ tokenBalances: [] })
+            resetResults();
             setUserAddress('')
         }
     }, [walletConnectAddress]);
@@ -98,6 +99,7 @@ function App() {
         const alchemy = new Alchemy(config);
 
         if (!haveString(userAddress) && !(isENS(userAddress) || isPublicKey(userAddress))) {
+            resetResults();
             return;
         }
         console.log(`address: ${userAddress}`)
@@ -108,6 +110,7 @@ function App() {
             if (!haveString(address)) {
                 console.log(`lookup for ${origAddr} failed`)
                 toast.error(`lookup for ${origAddr} as ENS failed`);
+                resetResults();
                 return;
             }
             console.log(`lookup for ${origAddr} - ${address}`);
@@ -130,6 +133,7 @@ function App() {
             setHasQueried(true);
         } else {
             if (! isPublicKey(userAddress)) {
+                resetResults();
                 setShowIsAddrError(true);
             }
         }
@@ -149,7 +153,7 @@ function App() {
             </Flex>
             <Box>
                 <Text>
-                    Connect a wallet. Or enter an address and this website will return all of its ERC-20
+                    Connect a wallet. Or enter an address (or an ENS) and this website will return all of its ERC-20
                     token balances!
                 </Text>
             </Box>
@@ -179,9 +183,9 @@ function App() {
                 </Button>
             </Box>
 
-            <Heading my={36}>ERC-20 token balances:</Heading>
+            <Heading my={36}>ERC-20 token balances</Heading>
 
-            {hasQueried ? (<SimpleGrid w={'90vw'} columns={4} spacing={24}>
+            {results.tokenBalances.length > 0 ? (<SimpleGrid w={'90vw'} columns={4} spacing={24}>
                 {results.tokenBalances.map((e, i) => {
                     return (<Flex
                         flexDir={'column'}
