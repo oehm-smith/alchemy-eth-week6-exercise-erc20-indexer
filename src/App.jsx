@@ -2,13 +2,15 @@ import {
     Box, Button, Center, Flex, Heading, Image, Input, SimpleGrid, Text,
 } from '@chakra-ui/react';
 import { Alchemy, Network, Utils } from 'alchemy-sdk';
-import { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { ConnectButton } from "./ConnectButton.jsx"
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { ethers } from "ethers"
 import { createWeb3Modal, defaultConfig } from "@web3modal/ethers5"
 import { useWeb3ModalAccount } from "@web3modal/ethers5/react"
+import { trackPromise } from 'react-promise-tracker';
+import { LoadingIndicator } from "./LoadingIndicator.jsx"
 
 // Ideally we'd use some more secure ways of obtaining these values
 const GOERLI_RPC_URL = "https://eth-goerli.g.alchemy.com/v2/8W7zKgmn4QUHaEdD_leww7KUQOpYphSd"
@@ -103,7 +105,7 @@ function App() {
         console.log(`address: ${userAddress}`)
         if (isENS(userAddress)) {
             const origAddr = userAddress;
-            const address = await alchemy.core.resolveName(userAddress);
+            const address = await trackPromise(alchemy.core.resolveName(userAddress));
             if (!haveString(address)) {
                 console.log(`lookup for ${origAddr} failed`)
                 toast.error(`lookup for ${origAddr} as ENS failed`);
@@ -126,7 +128,7 @@ function App() {
                 setResults(addressMap.get(userAddress))
                 return;
             }
-            const data = await alchemy.core.getTokenBalances(userAddress);    //userAddress);
+            const data = await trackPromise(alchemy.core.getTokenBalances(userAddress));    //userAddress);
             console.log(`* Went to network and read: ${data.tokenBalances.length} tokens`)
             setResults(data);   // Setting this here will cause the UI to update with initial information.  Down below
                                 // call setResults again to update with more details
@@ -141,7 +143,7 @@ function App() {
                     console.error(`error`)
                 }
             }
-            const tokenData = await Promise.all(tokenDataPromises);
+            const tokenData = await trackPromise(Promise.all(tokenDataPromises));
             for (let i = 0; i < data.tokenBalances.length; i++) {
                 data.tokenBalances[i] = { ...data.tokenBalances[i], ...tokenData[i] }
             }
@@ -210,6 +212,7 @@ function App() {
             </Box>
 
             <Heading my={36}>ERC-20 token balances</Heading>
+            <LoadingIndicator/>
 
             {results.tokenBalances?.length > 0 ? (<SimpleGrid columns={4} spacing={24}>
                 {results.tokenBalances.map((e, i) => {
